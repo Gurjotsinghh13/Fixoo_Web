@@ -1,0 +1,22 @@
+{
+  "name": "Fixoo — Emergency Repairs",
+  "short_name": "Fixoo",
+  "description": "Emergency home and road repairs in 30 minutes. Kota, Rajasthan.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "portrait",
+  "scope": "/",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["utilities", "lifestyle"],
+  "screenshots": []
+}

@@ -1,0 +1,47 @@
+# dependencies
+node_modules/
+
+# next
+.next/
+out/
+
+# production
+build/
+dist/
+
+# env files with local secrets
+.env
+.env.local
+.env.development
+.env.production
+.env.*.local
+
+# generated
+tsconfig.tsbuildinfo
+*.tsbuildinfo
+node_modules/.prisma/client/*.tmp*
+node_modules/.prisma/client/*.tmp
+node_modules/.prisma/client/query_engine-*.tmp*
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+*.err.log
+
+# local/debug artifacts
+TEST_CHECKLIST.local.md
+coverage/
+.nyc_output/
+.turbo/
+.vercel/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json

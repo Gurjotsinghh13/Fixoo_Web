@@ -1,0 +1,79 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: fixoo
+      POSTGRES_PASSWORD: fixoo_password
+      POSTGRES_DB: fixoo
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fixoo"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://fixoo:fixoo_password@postgres:5432/fixoo
+      DIRECT_URL: postgresql://fixoo:fixoo_password@postgres:5432/fixoo
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      NEXT_PUBLIC_SOCKET_URL: ${NEXT_PUBLIC_SOCKET_URL:-http://localhost:3001}
+      SOCKET_INTERNAL_URL: ${SOCKET_INTERNAL_URL:-http://socket:3001}
+      SOCKET_INTERNAL_SECRET: ${SOCKET_INTERNAL_SECRET:?SOCKET_INTERNAL_SECRET is required}
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  socket:
+    build: .
+    restart: always
+    ports:
+      - "3001:3001"
+    command: ["node", "server/socket-server.js"]
+    environment:
+      DATABASE_URL: postgresql://fixoo:fixoo_password@postgres:5432/fixoo
+      DIRECT_URL: postgresql://fixoo:fixoo_password@postgres:5432/fixoo
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      SOCKET_INTERNAL_SECRET: ${SOCKET_INTERNAL_SECRET:?SOCKET_INTERNAL_SECRET is required}
+      SOCKET_ALLOW_REMOTE_EMIT: "true"
+      SOCKET_PORT: 3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3001/health').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  expiry-worker:
+    build: .
+    restart: always
+    command: ["node", "server/request-expiry-worker.js"]
+    environment:
+      DATABASE_URL: postgresql://fixoo:fixoo_password@postgres:5432/fixoo
+      DIRECT_URL: postgresql://fixoo:fixoo_password@postgres:5432/fixoo
+      SOCKET_INTERNAL_URL: http://socket:3001
+      SOCKET_INTERNAL_SECRET: ${SOCKET_INTERNAL_SECRET:?SOCKET_INTERNAL_SECRET is required}
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      socket:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

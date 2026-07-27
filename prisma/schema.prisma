@@ -1,0 +1,445 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Tenant {
+  id        String   @id @default("default")
+  name      String
+  slug      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("tenants")
+}
+
+model User {
+  id            String             @id @default(cuid())
+  phone         String
+  name          String?
+  isActive      Boolean            @default(true)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  tenantId      String             @default("default")
+  feedback      CustomerFeedback[]
+  notifications Notification[]
+  otps          OTP[]
+  requests      ServiceRequest[]
+
+  @@unique([tenantId, phone])
+  @@index([tenantId])
+  @@map("users")
+}
+
+model Partner {
+  id                String               @id @default(cuid())
+  phone             String
+  name              String
+  shopName          String
+  address           String?
+  serviceRadius     Int                  @default(3)
+  isOnline          Boolean              @default(false)
+  isApproved        Boolean              @default(false)
+  isSuspended       Boolean              @default(false)
+  rating            Float                @default(0)
+  totalJobs         Int                  @default(0)
+  completedJobs     Int                  @default(0)
+  acceptanceRate    Float                @default(0)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  tenantId          String               @default("default")
+  aadhaarNumber     String?
+  addressProofUrl   String?
+  applicationNotes  String?
+  applicationStatus String               @default("PENDING")
+  approvedAt        DateTime?
+  emergencyContact  String?
+  idProofUrl        String?
+  lastCompletedAt   DateTime?
+  lastOnlineAt      DateTime?
+  rejectedAt        DateTime?
+  shopPhotoUrl      String?
+  suspendedAt       DateTime?
+  workingHours      String?
+  area              String?
+  pincode           String?
+  feedback          CustomerFeedback[]
+  notifications     Notification[]
+  otps              OTP[]
+  activities        PartnerActivity[]
+  broadcasts        PartnerBroadcast[]
+  location          PartnerLocation?
+  reviewNotes       PartnerReviewNote[]
+  vehicleTypes      PartnerVehicleType[]
+  requests          ServiceRequest[]
+  transactions      Transaction[]
+
+  @@unique([tenantId, phone])
+  @@index([isOnline, isApproved])
+  @@index([tenantId])
+  @@map("partners")
+}
+
+model PartnerActivity {
+  id        String   @id @default(cuid())
+  tenantId  String   @default("default")
+  partnerId String
+  type      String
+  note      String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  partner   Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, partnerId])
+  @@index([type])
+  @@map("partner_activities")
+}
+
+model PartnerReviewNote {
+  id        String   @id @default(cuid())
+  tenantId  String   @default("default")
+  partnerId String
+  adminId   String?
+  note      String
+  createdAt DateTime @default(now())
+  partner   Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, partnerId])
+  @@map("partner_review_notes")
+}
+
+model PartnerLocation {
+  id         String   @id @default(cuid())
+  partnerId  String   @unique
+  latitude   Float
+  longitude  Float
+  updatedAt  DateTime @updatedAt
+  tenantId   String   @default("default")
+  accuracy   Float?
+  heading    Float?
+  lastSeenAt DateTime @default(now())
+  speed      Float?
+  partner    Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, partnerId])
+  @@map("partner_locations")
+}
+
+model PartnerVehicleType {
+  partnerId     String
+  vehicleTypeId String
+  tenantId      String      @default("default")
+  partner       Partner     @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  vehicleType   VehicleType @relation(fields: [vehicleTypeId], references: [id], onDelete: Cascade)
+
+  @@id([tenantId, partnerId, vehicleTypeId])
+  @@index([tenantId])
+  @@map("partner_vehicle_types")
+}
+
+model VehicleType {
+  id           String               @id @default(cuid())
+  name         String
+  displayName  String
+  icon         String?
+  sortOrder    Int                  @default(0)
+  isActive     Boolean              @default(true)
+  tenantId     String               @default("default")
+  partnerTypes PartnerVehicleType[]
+  pricing      ServicePricing[]
+  requests     ServiceRequest[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("vehicle_types")
+}
+
+model Service {
+  id          String           @id @default(cuid())
+  name        String
+  displayName String
+  description String?
+  icon        String?
+  category    String           @default("ROADSIDE")
+  isActive    Boolean          @default(true)
+  tenantId    String           @default("default")
+  pricing     ServicePricing[]
+  requests    ServiceRequest[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("services")
+}
+
+model ServicePricing {
+  id             String      @id @default(cuid())
+  serviceId      String
+  vehicleTypeId  String
+  serviceFee     Decimal     @db.Decimal(10, 2)
+  platformFee    Decimal     @db.Decimal(10, 2)
+  nightSurcharge Decimal     @default(0) @db.Decimal(10, 2)
+  etaMin         Int         @default(10)
+  etaMax         Int         @default(20)
+  isActive       Boolean     @default(true)
+  tenantId       String      @default("default")
+  service        Service     @relation(fields: [serviceId], references: [id])
+  vehicleType    VehicleType @relation(fields: [vehicleTypeId], references: [id])
+
+  @@unique([tenantId, serviceId, vehicleTypeId])
+  @@index([tenantId])
+  @@map("service_pricing")
+}
+
+model ServiceRequest {
+  id                  String                 @id @default(cuid())
+  userId              String
+  partnerId           String?
+  serviceId           String
+  vehicleTypeId       String
+  status              RequestStatus          @default(REQUESTED)
+  latitude            Float
+  longitude           Float
+  address             String?
+  area                String?
+  serviceFee          Decimal                @db.Decimal(10, 2)
+  platformFee         Decimal                @db.Decimal(10, 2)
+  nightSurcharge      Decimal                @default(0) @db.Decimal(10, 2)
+  totalAmount         Decimal                @db.Decimal(10, 2)
+  searchRadius        Int                    @default(3)
+  expiresAt           DateTime?
+  acceptedAt          DateTime?
+  onTheWayAt          DateTime?
+  arrivedAt           DateTime?
+  startedAt           DateTime?
+  completedAt         DateTime?
+  cancelledAt         DateTime?
+  cancelReason        String?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  tenantId            String                 @default("default")
+  estimatedDistanceKm Float?
+  estimatedEtaSeconds Int?
+  etaUpdatedAt        DateTime?
+  noShowAt            DateTime?
+  noShowReason        String?
+  noShowType          String?
+  supportReason       String?
+  supportStatus       String?
+  supportUpdatedAt    DateTime?
+  feedback            CustomerFeedback?
+  notifications       Notification[]
+  broadcasts          PartnerBroadcast[]
+  statusHistory       RequestStatusHistory[]
+  supportNotes        RequestSupportNote[]
+  partner             Partner?               @relation(fields: [partnerId], references: [id])
+  service             Service                @relation(fields: [serviceId], references: [id])
+  user                User                   @relation(fields: [userId], references: [id])
+  vehicleType         VehicleType            @relation(fields: [vehicleTypeId], references: [id])
+  transaction         Transaction?
+
+  @@index([userId])
+  @@index([partnerId])
+  @@index([tenantId])
+  @@index([status])
+  @@index([status, expiresAt])
+  @@index([createdAt])
+  @@map("service_requests")
+}
+
+model CustomerFeedback {
+  id        String         @id @default(cuid())
+  tenantId  String         @default("default")
+  requestId String         @unique
+  userId    String
+  partnerId String?
+  rating    Int
+  comment   String?
+  createdAt DateTime       @default(now())
+  partner   Partner?       @relation(fields: [partnerId], references: [id])
+  request   ServiceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, requestId])
+  @@index([tenantId])
+  @@index([tenantId, partnerId])
+  @@map("customer_feedback")
+}
+
+model RequestSupportNote {
+  id        String         @id @default(cuid())
+  tenantId  String         @default("default")
+  requestId String
+  adminId   String?
+  note      String
+  createdAt DateTime       @default(now())
+  request   ServiceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, requestId])
+  @@map("request_support_notes")
+}
+
+model RequestStatusHistory {
+  id         String         @id @default(cuid())
+  tenantId   String         @default("default")
+  requestId  String
+  adminId    String?
+  actorRole  String
+  actorId    String?
+  fromStatus String?
+  toStatus   String
+  reason     String?
+  createdAt  DateTime       @default(now())
+  request    ServiceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, requestId])
+  @@map("request_status_history")
+}
+
+model PartnerBroadcast {
+  id          String             @id @default(cuid())
+  requestId   String
+  partnerId   String
+  sentAt      DateTime           @default(now())
+  seenAt      DateTime?
+  response    BroadcastResponse?
+  respondedAt DateTime?
+  tenantId    String             @default("default")
+  partner     Partner            @relation(fields: [partnerId], references: [id])
+  request     ServiceRequest     @relation(fields: [requestId], references: [id])
+
+  @@unique([requestId, partnerId])
+  @@unique([tenantId, requestId, partnerId])
+  @@index([tenantId])
+  @@map("partner_broadcasts")
+}
+
+model OTP {
+  id        String   @id @default(cuid())
+  phone     String
+  code      String
+  role      String   @default("customer")
+  userId    String?
+  partnerId String?
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  attempts  Int      @default(0)
+  tenantId  String   @default("default")
+  partner   Partner? @relation(fields: [partnerId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([phone, used])
+  @@index([tenantId, phone, role, used])
+  @@map("otps")
+}
+
+model Transaction {
+  id                 String         @id @default(cuid())
+  requestId          String         @unique
+  partnerId          String
+  totalAmount        Decimal        @db.Decimal(10, 2)
+  platformFee        Decimal        @db.Decimal(10, 2)
+  partnerEarning     Decimal        @db.Decimal(10, 2)
+  paymentMethod      String?
+  razorpayId         String?
+  status             String         @default("PENDING")
+  paidAt             DateTime?
+  settledAt          DateTime?
+  createdAt          DateTime       @default(now())
+  tenantId           String         @default("default")
+  paymentEvidenceUrl String?
+  paymentNote        String?
+  refundedAt         DateTime?
+  updatedAt          DateTime       @default(now()) @updatedAt
+  partner            Partner        @relation(fields: [partnerId], references: [id])
+  request            ServiceRequest @relation(fields: [requestId], references: [id])
+
+  @@unique([tenantId, requestId])
+  @@index([tenantId])
+  @@map("transactions")
+}
+
+model Notification {
+  id        String          @id @default(cuid())
+  userId    String?
+  partnerId String?
+  requestId String?
+  type      String
+  title     String
+  body      String
+  read      Boolean         @default(false)
+  createdAt DateTime        @default(now())
+  tenantId  String          @default("default")
+  partner   Partner?        @relation(fields: [partnerId], references: [id])
+  request   ServiceRequest? @relation(fields: [requestId], references: [id])
+  user      User?           @relation(fields: [userId], references: [id])
+
+  @@index([tenantId])
+  @@map("notifications")
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  phone     String
+  name      String
+  role      String   @default("SUPER_ADMIN")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  tenantId  String   @default("default")
+
+  @@unique([tenantId, phone])
+  @@index([tenantId])
+  @@map("admins")
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  adminId   String?
+  action    String
+  entity    String
+  entityId  String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  tenantId  String   @default("default")
+
+  @@index([entity, entityId])
+  @@index([tenantId])
+  @@map("activity_logs")
+}
+
+model AppSetting {
+  id        String   @id @default(cuid())
+  key       String
+  value     String
+  type      String   @default("string")
+  label     String?
+  updatedAt DateTime @updatedAt
+  tenantId  String   @default("default")
+
+  @@unique([tenantId, key])
+  @@index([tenantId])
+  @@map("app_settings")
+}
+
+enum RequestStatus {
+  REQUESTED
+  ACCEPTED
+  ON_THE_WAY
+  ARRIVED
+  REPAIR_IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum BroadcastResponse {
+  ACCEPTED
+  REJECTED
+  TIMEOUT
+}

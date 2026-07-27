@@ -1,0 +1,157 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 4%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 4%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 4%;
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 9%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 0 0% 4%;
+    --radius: 0.75rem;
+    --fixoo-background: #000000;
+    --fixoo-background-secondary: #111111;
+    --fixoo-card: #1A1A1A;
+    --fixoo-border: #2A2A2A;
+    --fixoo-text: #FFFFFF;
+    --fixoo-muted: #A1A1AA;
+    --fixoo-success: #22C55E;
+    --fixoo-warning: #F97316;
+    --fixoo-danger: #EF4444;
+  }
+
+  .dark {
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 100%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 0 0% 7%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 240 5% 64%;
+    --accent: 0 0% 13%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 16%;
+    --input: 0 0% 16%;
+    --ring: 0 0% 83%;
+  }
+
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: Arial, Helvetica, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Remove default input styling */
+  input, textarea, select {
+    outline: none;
+    background: transparent;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  ::-webkit-scrollbar-track { background: #111111; }
+  ::-webkit-scrollbar-thumb { background: #2A2A2A; border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: #3A3A3A; }
+}
+
+@layer components {
+  .fixoo-card {
+    @apply bg-card text-card-foreground border border-border rounded-xl p-4;
+  }
+
+  .fixoo-btn-primary {
+    @apply bg-primary text-primary-foreground font-semibold rounded-xl px-6 py-4 text-base
+    hover:bg-primary/90 active:bg-primary/80 transition-all duration-150
+    disabled:opacity-50 disabled:cursor-not-allowed w-full;
+  }
+
+  .fixoo-btn-secondary {
+    @apply bg-card text-card-foreground font-medium rounded-xl px-6 py-4 text-base
+    border border-border hover:bg-accent active:bg-card transition-all duration-150 w-full;
+  }
+
+  .fixoo-input {
+    @apply bg-card border border-input rounded-xl px-4 py-4 text-foreground
+    text-lg placeholder:text-muted-foreground focus:border-ring focus:ring-0
+    transition-colors duration-150 w-full;
+  }
+
+  .fixoo-label {
+    @apply text-muted-foreground text-sm font-medium mb-2 block;
+  }
+
+  .status-dot {
+    @apply w-2 h-2 rounded-full inline-block;
+  }
+
+  .online-dot {
+    @apply status-dot bg-[#22C55E] animate-pulse;
+  }
+
+  .page-container {
+    @apply min-h-screen bg-background max-w-md mx-auto relative overflow-hidden;
+  }
+}
+
+/* PWA safe areas */
+@supports (padding: max(0px)) {
+  .safe-top { padding-top: max(16px, env(safe-area-inset-top)); }
+  .safe-bottom { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+}
+
+/* Animations */
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.95); opacity: 0.7; }
+  70% { transform: scale(1.1); opacity: 0; }
+  100% { transform: scale(0.95); opacity: 0; }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.slide-up { animation: slideUp 0.3s ease-out; }
+.fade-in { animation: fadeIn 0.2s ease-out; }
+.spin-slow { animation: spin-slow 2s linear infinite; }
