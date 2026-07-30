@@ -1,9 +1,4 @@
-FROM node:18-alpine AS base
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-
-FROM node:18-alpine AS builder
+FROM node:20-bookworm-slim AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
@@ -11,19 +6,23 @@ COPY . .
 RUN npx prisma generate
 RUN npm run build
 
-FROM node:18-alpine AS runner
+FROM node:20-bookworm-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
+COPY package*.json ./
+RUN npm ci
+
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/server ./server
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+
+RUN npx prisma generate && npm prune --omit=dev
 
 USER nextjs
 
