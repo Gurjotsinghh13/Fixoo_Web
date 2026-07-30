@@ -1,10 +1,14 @@
-const SOCKET_INTERNAL_URL =
-  process.env.SOCKET_INTERNAL_URL ||
-  process.env.NEXT_PUBLIC_SOCKET_URL ||
-  (process.env.NODE_ENV === "production" ? undefined : "http://localhost:3001");
+function getSocketInternalUrl() {
+  const url =
+    process.env.SOCKET_INTERNAL_URL ||
+    process.env.NEXT_PUBLIC_SOCKET_URL ||
+    (process.env.NODE_ENV === "production" ? undefined : "http://localhost:3001");
 
-if (!SOCKET_INTERNAL_URL && process.env.NODE_ENV === "production") {
-  throw new Error("SOCKET_INTERNAL_URL or NEXT_PUBLIC_SOCKET_URL is required in production");
+  if (!url && process.env.NODE_ENV === "production") {
+    throw new Error("SOCKET_INTERNAL_URL or NEXT_PUBLIC_SOCKET_URL is required in production");
+  }
+
+  return url || "http://localhost:3001";
 }
 
 function getSocketInternalSecret() {
@@ -21,7 +25,9 @@ type EmitTarget =
 function postEmit(payload: EmitTarget) {
   if (process.env.DISABLE_SOCKET_EMIT === "true") return;
 
-  fetch(`${SOCKET_INTERNAL_URL}/emit`, {
+  const socketInternalUrl = getSocketInternalUrl();
+
+  fetch(`${socketInternalUrl}/emit`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
