@@ -7,7 +7,7 @@ const MAX_BATCHES_PER_CYCLE = Number(process.env.EXPIRY_WORKER_MAX_BATCHES || 10
 const SOCKET_INTERNAL_URL =
   process.env.SOCKET_INTERNAL_URL ||
   process.env.NEXT_PUBLIC_SOCKET_URL ||
-  "http://localhost:3001";
+  (process.env.NODE_ENV === "production" ? undefined : "http://localhost:3001");
 const SOCKET_INTERNAL_SECRET =
   process.env.SOCKET_INTERNAL_SECRET ||
   (process.env.NODE_ENV === "production" ? undefined : "fixoo-dev-internal-secret");
@@ -17,6 +17,11 @@ let timer = null;
 
 if (!SOCKET_INTERNAL_SECRET) {
   console.error("SOCKET_INTERNAL_SECRET is required for the expiry worker in production");
+  process.exit(1);
+}
+
+if (!SOCKET_INTERNAL_URL) {
+  console.error("SOCKET_INTERNAL_URL or NEXT_PUBLIC_SOCKET_URL is required for the expiry worker in production");
   process.exit(1);
 }
 

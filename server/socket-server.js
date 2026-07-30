@@ -4,8 +4,10 @@ const { Server } = require("socket.io");
 const prisma = require("./prisma");
 const jwt = require("jsonwebtoken");
 
-const PORT = Number(process.env.SOCKET_PORT || 3001);
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+const PORT = Number(process.env.SOCKET_PORT || process.env.PORT || 3001);
+const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL ||
+  (process.env.NODE_ENV === "production" ? undefined : "http://localhost:3000");
 const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === "production" ? undefined : "fixoo-dev-secret");
 const SOCKET_INTERNAL_SECRET =
   process.env.SOCKET_INTERNAL_SECRET ||
@@ -14,6 +16,11 @@ const DEFAULT_TENANT_ID = process.env.FIXOO_TENANT_ID || "default";
 
 if (!JWT_SECRET) {
   console.error("JWT_SECRET is required for the socket server in production");
+  process.exit(1);
+}
+
+if (!APP_URL) {
+  console.error("NEXT_PUBLIC_APP_URL is required for the socket server in production");
   process.exit(1);
 }
 

@@ -13,7 +13,13 @@ export function getSocket(role: string, id: string): Socket {
     socketKey = null;
   }
 
-  const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001";
+  const SOCKET_URL =
+    process.env.NEXT_PUBLIC_SOCKET_URL ||
+    (process.env.NODE_ENV === "production" ? undefined : "http://localhost:3001");
+
+  if (!SOCKET_URL) {
+    throw new Error("NEXT_PUBLIC_SOCKET_URL is required in production");
+  }
 
   socket = io(SOCKET_URL, {
     auth: { role, id },

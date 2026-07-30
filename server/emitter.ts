@@ -1,7 +1,11 @@
 const SOCKET_INTERNAL_URL =
   process.env.SOCKET_INTERNAL_URL ||
   process.env.NEXT_PUBLIC_SOCKET_URL ||
-  "http://localhost:3001";
+  (process.env.NODE_ENV === "production" ? undefined : "http://localhost:3001");
+
+if (!SOCKET_INTERNAL_URL && process.env.NODE_ENV === "production") {
+  throw new Error("SOCKET_INTERNAL_URL or NEXT_PUBLIC_SOCKET_URL is required in production");
+}
 
 function getSocketInternalSecret() {
   const secret = process.env.SOCKET_INTERNAL_SECRET;
