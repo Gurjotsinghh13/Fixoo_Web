@@ -41,134 +41,139 @@ export async function POST(req: NextRequest) {
     if (!phoneLimit.ok) return rateLimitResponse(phoneLimit.retryAfterSeconds);
 
     const hashedCode = hashOTP(phone, userRole, code);
+    const now = new Date();
 
-    const otp = await prisma.oTP.findFirst({
-      where: {
-        tenantId,
-        phone,
-        code: hashedCode,
-        role: userRole,
-        used: false,
-        attempts: { lt: 5 },
-        expiresAt: { gt: new Date() },
+    const verification = await prisma.$transaction(
+      async (tx) => {
+        const otp = await tx.oTP.findFirst({
+          where: {
+            tenantId,
+            phone,
+            code: hashedCode,
+            role: userRole,
+            used: false,
+            attempts: { lt: 5 },
+            expiresAt: { gt: now },
+          },
+          orderBy: { createdAt: "desc" },
+        });
+
+        if (!otp) {
+          await tx.oTP.updateMany({
+            where: {
+              tenantId,
+              phone,
+              role: userRole,
+              used: false,
+              expiresAt: { gt: now },
+            },
+            data: { attempts: { increment: 1 } },
+          });
+
+          return { ok: false as const, reason: "INVALID_OTP" as const };
+        }
+
+        const consumed = await tx.oTP.updateMany({
+          where: { id: otp.id, used: false, attempts: { lt: 5 } },
+          data: { used: true },
+        });
+
+        if (consumed.count !== 1) return { ok: false as const, reason: "INVALID_OTP" as const };
+
+        if (userRole === "customer") {
+          let isNew = false;
+          let user = await tx.user.findUnique({ where: { tenantId_phone: { tenantId, phone } } });
+          if (!user) {
+            user = await tx.user.create({ data: { tenantId, phone } });
+            isNew = true;
+          }
+
+          return {
+            ok: true as const,
+            isNew,
+            tokenPayload: {
+              id: user.id,
+              phone: user.phone,
+              role: "customer" as const,
+              name: user.name ?? undefined,
+              tenantId,
+            },
+            responseData: { id: user.id, phone: user.phone, name: user.name, role: "customer", tenantId },
+          };
+        }
+
+        if (userRole === "partner") {
+          const partner = await tx.partner.findUnique({ where: { tenantId_phone: { tenantId, phone } } });
+          if (!partner) throw new Error("PARTNER_NOT_FOUND");
+
+          return {
+            ok: true as const,
+            isNew: false,
+            tokenPayload: {
+              id: partner.id,
+              phone: partner.phone,
+              role: "partner" as const,
+              name: partner.name,
+              tenantId,
+            },
+            responseData: {
+              id: partner.id,
+              phone: partner.phone,
+              name: partner.name,
+              shopName: partner.shopName,
+              isApproved: partner.isApproved,
+              isSuspended: partner.isSuspended,
+              applicationStatus: partner.applicationStatus,
+              applicationNotes: partner.applicationNotes,
+              applicationNumber: partner.id,
+              role: "partner",
+              tenantId,
+            },
+          };
+        }
+
+        const admin = await tx.admin.findUnique({ where: { tenantId_phone: { tenantId, phone } } });
+        if (!admin) throw new Error("ADMIN_NOT_FOUND");
+        if (!admin.isActive) throw new Error("ADMIN_INACTIVE");
+        const adminRole = isTenantAdminRole(admin.role) ? admin.role : "STAFF";
+
+        return {
+          ok: true as const,
+          isNew: false,
+          tokenPayload: {
+            id: admin.id,
+            phone: admin.phone,
+            role: "admin" as const,
+            name: admin.name,
+            tenantId,
+            adminRole,
+          },
+          responseData: {
+            id: admin.id,
+            phone: admin.phone,
+            name: admin.name,
+            role: "admin",
+            adminRole,
+            tenantId,
+          },
+        };
       },
-      orderBy: { createdAt: "desc" },
-    });
+      { maxWait: 10000, timeout: 10000 }
+    );
 
-    if (!otp) {
-      await prisma.oTP.updateMany({
-        where: {
-          tenantId,
-          phone,
-          role: userRole,
-          used: false,
-          expiresAt: { gt: new Date() },
-        },
-        data: { attempts: { increment: 1 } },
-      });
-
+    if (!verification.ok) {
       return NextResponse.json(
         { success: false, error: "Invalid or expired OTP" },
         { status: 401 }
       );
     }
 
-    let tokenPayload:
-      | { id: string; phone: string; role: UserRole; name?: string; tenantId: string; adminRole?: AdminRole }
-      | undefined;
-    let isNew = false;
-    let responseData: Record<string, unknown> | undefined;
-
-    await prisma.$transaction(
-      async (tx) => {
-        const consumed = await tx.oTP.updateMany({
-          where: { id: otp.id, used: false, attempts: { lt: 5 } },
-          data: { used: true },
-        });
-
-        if (consumed.count !== 1) {
-          throw new Error("OTP_CONSUMED");
-        }
-
-        if (userRole === "customer") {
-          let user = await tx.user.findFirst({ where: { tenantId, phone } });
-          if (!user) {
-            user = await tx.user.create({ data: { tenantId, phone } });
-            isNew = true;
-          }
-          tokenPayload = {
-            id: user.id,
-            phone: user.phone,
-            role: "customer",
-            name: user.name ?? undefined,
-            tenantId,
-          };
-          responseData = { id: user.id, phone: user.phone, name: user.name, role: "customer", tenantId };
-          return;
-        }
-
-        if (userRole === "partner") {
-          const partner = await tx.partner.findFirst({ where: { tenantId, phone } });
-          if (!partner) throw new Error("PARTNER_NOT_FOUND");
-
-          tokenPayload = {
-            id: partner.id,
-            phone: partner.phone,
-            role: "partner",
-            name: partner.name,
-            tenantId,
-          };
-          responseData = {
-            id: partner.id,
-            phone: partner.phone,
-            name: partner.name,
-            shopName: partner.shopName,
-            isApproved: partner.isApproved,
-            isSuspended: partner.isSuspended,
-            applicationStatus: partner.applicationStatus,
-            applicationNotes: partner.applicationNotes,
-            applicationNumber: partner.id,
-            role: "partner",
-            tenantId,
-          };
-          return;
-        }
-
-        const admin = await tx.admin.findFirst({ where: { tenantId, phone } });
-        if (!admin) throw new Error("ADMIN_NOT_FOUND");
-        if (!admin.isActive) throw new Error("ADMIN_INACTIVE");
-        const adminRole = isTenantAdminRole(admin.role) ? admin.role : "STAFF";
-
-        tokenPayload = {
-          id: admin.id,
-          phone: admin.phone,
-          role: "admin",
-          name: admin.name,
-          tenantId,
-          adminRole,
-        };
-        responseData = {
-          id: admin.id,
-          phone: admin.phone,
-          name: admin.name,
-          role: "admin",
-          adminRole,
-          tenantId,
-        };
-      },
-      { maxWait: 30000, timeout: 30000 }
-    );
-
-    if (!tokenPayload || !responseData) {
-      return NextResponse.json({ success: false, error: "Verification failed" }, { status: 500 });
-    }
-
-    const token = signToken(tokenPayload);
+    const token = signToken(verification.tokenPayload);
 
     const response = NextResponse.json({
       success: true,
-      data: responseData,
-      isNew,
+      data: verification.responseData,
+      isNew: verification.isNew,
     });
 
     response.cookies.set(COOKIE_NAME, token, {

@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"next dev --turbo\" \"node server/socket-server.js\" \"node server/request-expiry-worker.js\"",
+    "dev": "concurrently --kill-others --names next,socket,worker \"next dev\" \"node server/socket-server.js\" \"node server/request-expiry-worker.js\"",
+    "dev:turbo": "concurrently --kill-others --names next,socket,worker \"next dev --turbo\" \"node server/socket-server.js\" \"node server/request-expiry-worker.js\"",
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",

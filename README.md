@@ -75,13 +75,20 @@ This starts:
 - Socket.io on http://localhost:3001
 - Request expiry worker, polling every 15 seconds
 
-The dev script uses Turbopack:
+The default dev script uses the standard Next.js dev bundler. This is the
+stable mode for Windows because it avoids intermittent Turbopack temp-file
+races such as `.next/static/development/_buildManifest.js.tmp.*` ENOENT
+errors.
 
 ```bash
-next dev --turbo
+next dev
 ```
 
-This avoids the local `next dev` startup hang observed with the default dev bundler in this workspace.
+If you specifically want to test Turbopack, run:
+
+```bash
+npm run dev:turbo
+```
 
 ## Test Accounts
 
@@ -243,4 +250,3 @@ Pricing is configurable from Admin -> Pricing.
 
 - Admin phone: 9999999999
 - Support phone is configurable through environment/app settings.
-
