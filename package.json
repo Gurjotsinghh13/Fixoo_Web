@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "start:web": "node server.js",
     "dev": "concurrently --kill-others --names next,socket,worker \"next dev\" \"node server/socket-server.js\" \"node server/request-expiry-worker.js\"",
     "dev:turbo": "concurrently --kill-others --names next,socket,worker \"next dev --turbo\" \"node server/socket-server.js\" \"node server/request-expiry-worker.js\"",
     "build": "prisma generate && next build && node scripts/prepare-standalone-assets.js",
