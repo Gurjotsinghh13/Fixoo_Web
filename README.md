@@ -46,13 +46,23 @@ Important:
 - Prisma CLI loads `.env`.
 - The app normalizes runtime env loading through `@next/env` so scripts, Socket.io, and the worker use the same values as Next.js.
 
-For local OTP testing:
+For OTP testing without MSG91:
 
 ```env
-ENABLE_DEV_OTP=true
+OTP_PROVIDER=mock
 ```
 
-When enabled, OTPs are saved normally but printed in the terminal instead of being sent through MSG91.
+When enabled, OTPs are generated and saved normally, then printed to the server console instead of being sent through MSG91. The API response remains the same as production.
+
+For real SMS delivery:
+
+```env
+OTP_PROVIDER=msg91
+MSG91_API_KEY=<your-msg91-api-key>
+MSG91_TEMPLATE_ID=<your-msg91-template-id>
+```
+
+`ENABLE_DEV_OTP=true` is still supported for older local setups, but `OTP_PROVIDER=mock` is preferred for Railway test deployments.
 
 ### Database
 
@@ -250,3 +260,6 @@ Pricing is configurable from Admin -> Pricing.
 
 - Admin phone: 9999999999
 - Support phone is configurable through environment/app settings.
+
+
+

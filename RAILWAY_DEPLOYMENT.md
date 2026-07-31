@@ -85,9 +85,17 @@ SOCKET_INTERNAL_SECRET=
 SOCKET_ALLOW_REMOTE_EMIT=true
 ```
 
-OTP:
+OTP mock mode for Railway testing:
 
 ```env
+OTP_PROVIDER=mock
+ENABLE_DEV_OTP=false
+```
+
+OTP MSG91 mode for production SMS delivery:
+
+```env
+OTP_PROVIDER=msg91
 ENABLE_DEV_OTP=false
 MSG91_API_KEY=
 MSG91_TEMPLATE_ID=
@@ -217,3 +225,6 @@ After deployment, Flutter should use:
 --dart-define=FIXOO_API_BASE_URL=https://<fixoo-web>.up.railway.app
 --dart-define=FIXOO_SOCKET_URL=https://<fixoo-socket>.up.railway.app
 ```
+
+
+
