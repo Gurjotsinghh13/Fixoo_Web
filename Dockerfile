@@ -1,15 +1,22 @@
 FROM node:20-bookworm-slim AS builder
 WORKDIR /app
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 COPY package*.json ./
 RUN npm ci
 COPY . .
-RUN npx prisma generate
+RUN openssl version && npx prisma generate
 RUN npm run build
 RUN npm prune --omit=dev
 
 FROM node:20-bookworm-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
@@ -25,7 +32,8 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
 
 RUN if find ./node_modules/.prisma -name 'libquery_engine-linux-musl.so.node' | grep -q .; then echo 'Unexpected linux-musl Prisma engine found in runtime image'; exit 1; fi \
-  && find ./node_modules/.prisma -name 'libquery_engine-debian-openssl-*.so.node' | grep -q .
+  && if find ./node_modules/.prisma -name 'libquery_engine-debian-openssl-1.1.x.so.node' | grep -q .; then echo 'Unexpected OpenSSL 1.1 Prisma engine found in runtime image'; exit 1; fi \
+  && find ./node_modules/.prisma -name 'libquery_engine-debian-openssl-3.0.x.so.node' | grep -q .
 
 USER nextjs
 
