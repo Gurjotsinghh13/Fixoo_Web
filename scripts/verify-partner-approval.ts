@@ -8,7 +8,7 @@ process.env.DISABLE_SOCKET_EMIT = "true";
 const suffix = String(Date.now()).slice(-8);
 const phone = `97${suffix}`;
 let partnerId = "";
-let customerId = "";
+const customerIds: string[] = [];
 let vehicleTypeId = "";
 let serviceId = "";
 const requestIds: string[] = [];
@@ -35,10 +35,19 @@ function request(
 }
 
 async function createRequest(status: "REQUESTED" = "REQUESTED") {
+  // One customer per request: one_active_request_per_user allows a single active request each.
+  const customer = await prisma.user.create({
+    data: {
+      tenantId: "default",
+      phone: `9${customerIds.length + 1}${suffix}`,
+      name: "Approval Test Customer",
+    },
+  });
+  customerIds.push(customer.id);
   const created = await prisma.serviceRequest.create({
     data: {
       tenantId: "default",
-      userId: customerId,
+      userId: customer.id,
       serviceId,
       vehicleTypeId,
       status,
@@ -66,7 +75,7 @@ async function cleanup() {
     await prisma.activityLog.deleteMany({ where: { entity: "partner", entityId: partnerId } });
     await prisma.partner.deleteMany({ where: { id: partnerId } });
   }
-  if (customerId) await prisma.user.deleteMany({ where: { id: customerId } });
+  if (customerIds.length) await prisma.user.deleteMany({ where: { id: { in: customerIds } } });
   if (serviceId) await prisma.service.deleteMany({ where: { id: serviceId } });
   if (vehicleTypeId) {
     await prisma.vehicleType.deleteMany({ where: { id: vehicleTypeId } });
@@ -93,7 +102,7 @@ async function main() {
 
   await cleanup();
 
-  const [vehicleType, service, customer, admin] = await Promise.all([
+  const [vehicleType, service, admin] = await Promise.all([
     prisma.vehicleType.create({
       data: {
         tenantId: "default",
@@ -109,20 +118,12 @@ async function main() {
         displayName: "Approval Test Service",
       },
     }),
-    prisma.user.create({
-      data: {
-        tenantId: "default",
-        phone: `96${suffix}`,
-        name: "Approval Test Customer",
-      },
-    }),
     prisma.admin.findFirstOrThrow({
       where: { tenantId: "default", isActive: true },
     }),
   ]);
   vehicleTypeId = vehicleType.id;
   serviceId = service.id;
-  customerId = customer.id;
 
   const document = "data:image/png;base64,aGVsbG8=";
   const registrationResponse = await registerPartner(

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { isNightTime } from "@/lib/auth";
 import { dispatchRequest } from "@/lib/dispatch";
@@ -8,6 +9,13 @@ import { expireOverdueRequestsForTenant, getActiveRequestStatuses } from "@/lib/
 import { emitToCustomer } from "@/server/emitter";
 import { recordRequestHistory } from "@/lib/request-history";
 import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/security";
+
+function activeRequestConflict(requestId?: string) {
+  return NextResponse.json(
+    { success: false, error: "You already have an active request", requestId },
+    { status: 409 }
+  );
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -46,10 +54,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (activeRequest) {
-      return NextResponse.json(
-        { success: false, error: "You already have an active request", requestId: activeRequest.id },
-        { status: 409 }
-      );
+      return activeRequestConflict(activeRequest.id);
     }
 
     // Get pricing
@@ -71,29 +76,46 @@ export async function POST(req: NextRequest) {
     const nightSurcharge = night ? Number(pricing.nightSurcharge) : 0;
     const totalAmount = serviceFee + platformFee + nightSurcharge;
 
-    // Create request
-    const request = await prisma.serviceRequest.create({
-      data: {
-        tenantId,
-        userId: user.id,
-        serviceId,
-        vehicleTypeId,
-        latitude: parsedLatitude,
-        longitude: parsedLongitude,
-        address: address || null,
-        area: area || null,
-        serviceFee,
-        platformFee,
-        nightSurcharge,
-        totalAmount,
-        status: "REQUESTED",
-        expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 min total
-      },
-      include: {
-        service: true,
-        vehicleType: true,
-      },
-    });
+    // Create request. The one_active_request_per_user partial unique index rejects
+    // a concurrent create that slipped past the findFirst check above.
+    let request;
+    try {
+      request = await prisma.serviceRequest.create({
+        data: {
+          tenantId,
+          userId: user.id,
+          serviceId,
+          vehicleTypeId,
+          latitude: parsedLatitude,
+          longitude: parsedLongitude,
+          address: address || null,
+          area: area || null,
+          serviceFee,
+          platformFee,
+          nightSurcharge,
+          totalAmount,
+          status: "REQUESTED",
+          expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 min total
+        },
+        include: {
+          service: true,
+          vehicleType: true,
+        },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        const winner = await prisma.serviceRequest.findFirst({
+          where: {
+            tenantId,
+            userId: user.id,
+            status: { in: getActiveRequestStatuses() },
+          },
+          select: { id: true },
+        });
+        return activeRequestConflict(winner?.id);
+      }
+      throw error;
+    }
 
     // Trigger dispatch asynchronously
     emitToCustomer(user.id, "request:created", {

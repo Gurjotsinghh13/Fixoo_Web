@@ -21,6 +21,7 @@
     "worker:expiry": "node server/request-expiry-worker.js",
     "worker:expiry:verify": "tsx scripts/verify-expiry-worker.ts",
     "verify:completion-idempotency": "tsx scripts/verify-completion-idempotency.ts",
+    "verify:active-request-uniqueness": "tsx scripts/verify-active-request-uniqueness.ts",
     "verify:financial-reporting": "tsx scripts/verify-financial-reporting.ts",
     "audit:financial-state": "tsx scripts/audit-financial-state.ts",
     "db:reconcile-completion-metrics": "tsx scripts/reconcile-partner-completion-metrics.ts",
