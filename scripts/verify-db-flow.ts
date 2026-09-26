@@ -53,7 +53,10 @@ async function main() {
   requireRecord("seed admin record", admin);
   const testCustomer = requireRecord("test customer record", customer);
   const testPartner = requireRecord("test partner record", partner);
-  check("test partner approved and online", testPartner.isApproved && testPartner.isOnline);
+  check(
+    "test partner approved and online",
+    testPartner.applicationStatus === "APPROVED" && testPartner.isApproved && testPartner.isOnline
+  );
   check("test partner location exists", Boolean(testPartner.location));
   check("test partner vehicle support exists", testPartner.vehicleTypes.length >= 3);
 
