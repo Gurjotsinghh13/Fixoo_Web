@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyTokenEdge } from "@/lib/edge-auth";
 
-const PUBLIC_PATHS = ["/login", "/partner/login", "/partner/register", "/admin/login", "/api/auth", "/api/health"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/partner/login",
+  "/partner/register",
+  "/admin/login",
+  "/api/auth",
+  "/api/health",
+  "/api/pricing",
+  "/api/partner/register",
+];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -30,6 +39,9 @@ export async function middleware(req: NextRequest) {
   if (!user) {
     if (pathname.startsWith("/partner")) return NextResponse.redirect(new URL("/partner/login", req.url));
     if (pathname.startsWith("/admin")) return NextResponse.redirect(new URL("/admin/login", req.url));
+    if (pathname.startsWith("/api")) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
