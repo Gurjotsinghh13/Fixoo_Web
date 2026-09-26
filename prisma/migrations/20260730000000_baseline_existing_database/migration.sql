@@ -1,4 +1,4 @@
-﻿-- CreateEnum
+-- CreateEnum
 CREATE TYPE "RequestStatus" AS ENUM ('REQUESTED', 'ACCEPTED', 'ON_THE_WAY', 'ARRIVED', 'REPAIR_IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'EXPIRED');
 
 -- CreateEnum
