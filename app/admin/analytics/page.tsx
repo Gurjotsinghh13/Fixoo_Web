@@ -16,7 +16,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Activity, Clock, MapPin, TrendingUp, XCircle, Zap } from "lucide-react";
+import { Activity, Clock, MapPin, TrendingUp, XCircle } from "lucide-react";
+import { AdminHeader } from "@/components/admin/AdminHeader";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { useAuthStore } from "@/store/useAuthStore";
 import { getSocket } from "@/lib/socket";
@@ -105,7 +106,7 @@ function ChartCard({ title, children }: { title: string; children: React.ReactNo
 export default function AdminAnalyticsPage() {
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["admin-marketplace-analytics"],
     queryFn: async () => {
       const res = await axios.get("/api/admin/marketplace-analytics");
@@ -138,13 +139,7 @@ export default function AdminAnalyticsPage() {
 
   return (
     <div className="min-h-screen bg-black">
-      <div className="border-b border-[#2A2A2A] px-6 py-4 flex items-center gap-3">
-        <a href="/admin/dashboard" className="text-[#A1A1AA] hover:text-white">
-          <Zap className="w-5 h-5" />
-        </a>
-        <span className="text-[#2A2A2A]">/</span>
-        <h1 className="text-white font-semibold">Marketplace Analytics</h1>
-      </div>
+      <AdminHeader onRefresh={() => refetch()} isRefreshing={isFetching} />
 
       <div className="px-6 py-6 max-w-7xl mx-auto space-y-6">
         <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">

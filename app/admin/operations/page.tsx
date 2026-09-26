@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { formatDistanceToNow } from "date-fns";
-import { AlertTriangle, RefreshCw, Zap } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
+import { AdminHeader } from "@/components/admin/AdminHeader";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 type QueueRow = {
@@ -44,22 +45,7 @@ export default function AdminOperationsPage() {
 
   return (
     <div className="min-h-screen bg-black">
-      <div className="border-b border-[#2A2A2A] px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link href="/admin/dashboard" className="text-[#A1A1AA] hover:text-white">
-            <Zap className="w-5 h-5" />
-          </Link>
-          <span className="text-[#2A2A2A]">/</span>
-          <h1 className="text-white font-semibold">Operations</h1>
-        </div>
-        <button
-          onClick={() => refetch()}
-          title="Refresh queues"
-          className="w-9 h-9 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] flex items-center justify-center text-[#A1A1AA] hover:text-white"
-        >
-          <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
-        </button>
-      </div>
+      <AdminHeader onRefresh={() => refetch()} isRefreshing={isFetching} />
 
       <div className="px-6 py-6 max-w-7xl mx-auto">
         {isLoading ? (

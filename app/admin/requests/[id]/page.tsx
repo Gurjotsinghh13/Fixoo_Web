@@ -4,10 +4,11 @@ import { useParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { format } from "date-fns";
-import { AlertTriangle, CheckCircle, Clock, RefreshCw, Send, UserX, Zap } from "lucide-react";
+import { AlertTriangle, CheckCircle, Clock, RefreshCw, Send, UserX } from "lucide-react";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { toast } from "@/components/shared/Toaster";
 import Link from "next/link";
+import { AdminHeader } from "@/components/admin/AdminHeader";
 
 type RequestDetail = {
   id: string;
@@ -91,7 +92,7 @@ export default function AdminRequestDetailPage() {
   const [partnerId, setPartnerId] = useState("");
   const [supportStatus, setSupportStatus] = useState("SUPPORT_FOLLOW_UP");
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["admin-request-detail", requestId],
     queryFn: async () => {
       const res = await axios.get(`/api/admin/requests/${requestId}`);
@@ -102,6 +103,9 @@ export default function AdminRequestDetailPage() {
 
   const actionMutation = useMutation({
     mutationFn: async (action: string) => {
+      if (action === "cancel" && (!reason || reason.trim().length < 3)) {
+        throw new Error("Cancellation reason is required (at least 3 characters)");
+      }
       const res = await axios.patch(`/api/admin/requests/${requestId}`, {
         action,
         reason: reason || undefined,
@@ -116,8 +120,8 @@ export default function AdminRequestDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["admin-request-detail", requestId] });
       queryClient.invalidateQueries({ queryKey: ["admin-requests"] });
     },
-    onError: (error) => {
-      const msg = axios.isAxiosError(error) ? error.response?.data?.error : "Action failed";
+    onError: (error: unknown) => {
+      const msg = error instanceof Error ? error.message : (error as { response?: { data?: { error?: string } } })?.response?.data?.error;
       toast(msg || "Action failed", "error");
     },
   });
@@ -141,15 +145,7 @@ export default function AdminRequestDetailPage() {
 
   return (
     <div className="min-h-screen bg-black">
-      <div className="border-b border-[#2A2A2A] px-6 py-4 flex items-center gap-3">
-        <a href="/admin/dashboard" className="text-[#A1A1AA] hover:text-white">
-          <Zap className="w-5 h-5" />
-        </a>
-        <span className="text-[#2A2A2A]">/</span>
-        <Link href="/admin/requests" className="text-[#A1A1AA] hover:text-white">Requests</Link>
-        <span className="text-[#2A2A2A]">/</span>
-        <h1 className="text-white font-semibold">{data.service}</h1>
-      </div>
+      <AdminHeader onRefresh={() => refetch()} isRefreshing={isFetching} />
 
       <div className="px-6 py-6 max-w-7xl mx-auto grid lg:grid-cols-[1fr_360px] gap-6">
         <div className="space-y-4">
@@ -341,9 +337,9 @@ export default function AdminRequestDetailPage() {
             <p className="text-white font-semibold mb-3">Transaction</p>
             {data.transaction ? (
               <div className="space-y-2 text-sm">
-                <p className="text-white flex justify-between"><span>Total</span><span>Rs {data.transaction.totalAmount}</span></p>
-                <p className="text-[#A1A1AA] flex justify-between"><span>Platform</span><span>Rs {data.transaction.platformFee}</span></p>
-                <p className="text-[#A1A1AA] flex justify-between"><span>Partner</span><span>Rs {data.transaction.partnerEarning}</span></p>
+                <p className="text-white flex justify-between"><span>Total</span><span>₹{data.transaction.totalAmount}</span></p>
+                <p className="text-[#A1A1AA] flex justify-between"><span>Platform</span><span>₹{data.transaction.platformFee}</span></p>
+                <p className="text-[#A1A1AA] flex justify-between"><span>Partner</span><span>₹{data.transaction.partnerEarning}</span></p>
                 <p className="text-[#A1A1AA] flex justify-between"><span>Status</span><span>{data.transaction.status}</span></p>
                 {data.transaction.paymentNote && (
                   <p className="text-[#A1A1AA] text-xs">{data.transaction.paymentNote}</p>

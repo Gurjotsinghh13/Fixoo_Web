@@ -13,6 +13,7 @@ import {
 import { format } from "date-fns";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { toast } from "@/components/shared/Toaster";
+import { AdminHeader } from "@/components/admin/AdminHeader";
 
 type StatusFilter = "pending" | "approved" | "rejected" | "suspended";
 
@@ -67,7 +68,7 @@ export default function PartnerApplicationsPage() {
   const [search, setSearch] = useState("");
   const [notes, setNotes] = useState<Record<string, string>>({});
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["partner-applications", filter, search],
     queryFn: async () => {
       const response = await axios.get(
@@ -117,17 +118,7 @@ export default function PartnerApplicationsPage() {
 
   return (
     <div className="min-h-screen bg-black">
-      <header className="border-b border-[#2A2A2A] px-6 py-4">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div>
-            <p className="text-[#A1A1AA] text-xs">Fixoo Operations</p>
-            <h1 className="text-white font-semibold">Partner Applications</h1>
-          </div>
-          <a href="/admin/dashboard" className="text-[#A1A1AA] text-sm">
-            Dashboard
-          </a>
-        </div>
-      </header>
+      <AdminHeader onRefresh={() => refetch()} isRefreshing={isFetching} />
 
       <main className="max-w-6xl mx-auto px-6 py-6">
         <div className="flex flex-col sm:flex-row gap-3 mb-6">

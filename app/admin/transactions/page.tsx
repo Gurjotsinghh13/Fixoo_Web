@@ -3,9 +3,10 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { format } from "date-fns";
-import { Banknote, HandCoins, ReceiptText, TrendingUp, Zap } from "lucide-react";
+import { Banknote, HandCoins, ReceiptText, TrendingUp } from "lucide-react";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { toast } from "@/components/shared/Toaster";
+import { AdminHeader } from "@/components/admin/AdminHeader";
 
 type TransactionRow = {
   id: string;
@@ -62,7 +63,7 @@ export default function AdminTransactionsPage() {
     return params.toString();
   }, [from, status, to]);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["admin-transactions", query],
     queryFn: async () => {
       const res = await axios.get(`/api/admin/transactions?${query}`);
@@ -94,13 +95,7 @@ export default function AdminTransactionsPage() {
 
   return (
     <div className="min-h-screen bg-black">
-      <div className="border-b border-[#2A2A2A] px-6 py-4 flex items-center gap-3">
-        <a href="/admin/dashboard" className="text-[#A1A1AA] hover:text-white">
-          <Zap className="w-5 h-5" />
-        </a>
-        <span className="text-[#2A2A2A]">/</span>
-        <h1 className="text-white font-semibold">Transactions</h1>
-      </div>
+      <AdminHeader onRefresh={() => refetch()} isRefreshing={isFetching} />
 
       <div className="px-6 py-6 max-w-7xl mx-auto">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
@@ -111,17 +106,17 @@ export default function AdminTransactionsPage() {
           </div>
           <div className="fixoo-card">
             <Banknote className="w-5 h-5 text-white mb-2" />
-            <p className="text-white text-2xl font-bold">Rs {data?.totals.totalAmount || 0}</p>
+            <p className="text-white text-2xl font-bold">₹{data?.totals.totalAmount || 0}</p>
             <p className="text-[#A1A1AA] text-sm">Gross value</p>
           </div>
           <div className="fixoo-card">
             <TrendingUp className="w-5 h-5 text-[#22C55E] mb-2" />
-            <p className="text-white text-2xl font-bold">Rs {data?.totals.platformFee || 0}</p>
+            <p className="text-white text-2xl font-bold">₹{data?.totals.platformFee || 0}</p>
             <p className="text-[#A1A1AA] text-sm">Fixoo commission</p>
           </div>
           <div className="fixoo-card">
             <HandCoins className="w-5 h-5 text-[#F97316] mb-2" />
-            <p className="text-white text-2xl font-bold">Rs {data?.totals.partnerEarning || 0}</p>
+            <p className="text-white text-2xl font-bold">₹{data?.totals.partnerEarning || 0}</p>
             <p className="text-[#A1A1AA] text-sm">Partner earnings</p>
           </div>
         </div>
@@ -181,9 +176,9 @@ export default function AdminTransactionsPage() {
                       <p className="text-white text-sm">{txn.partner.name}</p>
                       <p className="text-[#A1A1AA] text-xs">{txn.partner.shopName}</p>
                     </td>
-                    <td className="py-3 pr-4 text-white text-sm">Rs {txn.totalAmount}</td>
-                    <td className="py-3 pr-4 text-[#22C55E] text-sm">Rs {txn.platformFee}</td>
-                    <td className="py-3 pr-4 text-[#F97316] text-sm">Rs {txn.partnerEarning}</td>
+                    <td className="py-3 pr-4 text-white text-sm">₹{txn.totalAmount}</td>
+                    <td className="py-3 pr-4 text-[#22C55E] text-sm">₹{txn.platformFee}</td>
+                    <td className="py-3 pr-4 text-[#F97316] text-sm">₹{txn.partnerEarning}</td>
                     <td className="py-3 pr-4 text-white text-xs">{txn.status}</td>
                     <td className="py-3 min-w-64">
                       <input

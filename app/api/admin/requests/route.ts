@@ -33,6 +33,7 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get("status") || "all";
     const from = parseDate(searchParams.get("from"));
     const to = parseDate(searchParams.get("to"), true);
+    const search = searchParams.get("search")?.trim() || "";
 
     const where: Record<string, unknown> = { tenantId };
     if (status === "active") where.status = { in: ACTIVE_STATUSES };
@@ -43,6 +44,21 @@ export async function GET(req: NextRequest) {
       ];
     }
     else if (status !== "all") where.status = status;
+
+    if (search) {
+      where.AND = [
+        {
+          OR: [
+            { id: { contains: search, mode: "insensitive" } },
+            { user: { phone: { contains: search } } },
+            { user: { name: { contains: search, mode: "insensitive" } } },
+            { partner: { name: { contains: search, mode: "insensitive" } } },
+            { partner: { shopName: { contains: search, mode: "insensitive" } } },
+            { service: { displayName: { contains: search, mode: "insensitive" } } },
+          ],
+        },
+      ];
+    }
 
     if (from || to) {
       where.createdAt = {

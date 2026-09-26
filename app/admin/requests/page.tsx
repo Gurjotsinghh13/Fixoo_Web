@@ -3,8 +3,9 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { format } from "date-fns";
-import { Activity, CalendarDays, CheckCircle, Clock, Filter, XCircle, Zap } from "lucide-react";
+import { Activity, CalendarDays, CheckCircle, Clock, Filter, Search, XCircle } from "lucide-react";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
+import { AdminHeader } from "@/components/admin/AdminHeader";
 
 const STATUSES = [
   { key: "all", label: "All" },
@@ -58,17 +59,19 @@ function today() {
 
 export default function AdminRequestsPage() {
   const [status, setStatus] = useState("all");
+  const [search, setSearch] = useState("");
   const [from, setFrom] = useState(today());
   const [to, setTo] = useState(today());
 
   const query = useMemo(() => {
     const params = new URLSearchParams({ status });
+    if (search) params.set("search", search);
     if (from) params.set("from", from);
     if (to) params.set("to", to);
     return params.toString();
-  }, [from, status, to]);
+  }, [from, search, status, to]);
 
-  const { data, isLoading, isFetching } = useQuery({
+  const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ["admin-requests", query],
     queryFn: async () => {
       const res = await axios.get(`/api/admin/requests?${query}`);
@@ -79,14 +82,7 @@ export default function AdminRequestsPage() {
 
   return (
     <div className="min-h-screen bg-black">
-      <div className="border-b border-[#2A2A2A] px-6 py-4 flex items-center gap-3">
-        <a href="/admin/dashboard" className="text-[#A1A1AA] hover:text-white">
-          <Zap className="w-5 h-5" />
-        </a>
-        <span className="text-[#2A2A2A]">/</span>
-        <h1 className="text-white font-semibold">Requests</h1>
-        {isFetching && <LoadingSpinner size="sm" />}
-      </div>
+      <AdminHeader onRefresh={() => refetch()} isRefreshing={isFetching} />
 
       <div className="px-6 py-6 max-w-7xl mx-auto">
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
@@ -117,7 +113,17 @@ export default function AdminRequestsPage() {
           </div>
         </div>
 
-        <div className="fixoo-card mb-6">
+        <div className="fixoo-card mb-6 space-y-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#A1A1AA]" />
+            <input
+              type="text"
+              placeholder="Search by customer phone, partner name, service, or ID..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="fixoo-input pl-10 py-2.5 text-sm"
+            />
+          </div>
           <div className="flex flex-col lg:flex-row gap-3 lg:items-end">
             <div className="flex-1">
               <p className="text-[#A1A1AA] text-xs uppercase tracking-widest mb-2">Status</p>
@@ -185,7 +191,7 @@ export default function AdminRequestsPage() {
                       <p className="text-white text-sm">{request.partner?.name || "-"}</p>
                       <p className="text-[#A1A1AA] text-xs">{request.partner?.shopName || ""}</p>
                     </td>
-                    <td className="py-3 pr-4 text-white text-sm">Rs {request.totalAmount}</td>
+                    <td className="py-3 pr-4 text-white text-sm">₹{request.totalAmount}</td>
                     <td className="py-3 pr-4 text-[#A1A1AA] text-sm">{request.broadcastsSent}</td>
                     <td className="py-3 pr-4">
                       <span className="text-white text-xs font-medium">{request.status}</span>

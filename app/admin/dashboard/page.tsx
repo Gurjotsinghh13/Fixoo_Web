@@ -4,13 +4,14 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import {
   TrendingUp, Users, CheckCircle, XCircle,
-  Clock, Zap, AlertCircle, RefreshCw
+  Clock, AlertCircle
 } from "lucide-react";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { format } from "date-fns";
 import Link from "next/link";
 import { useAuthStore } from "@/store/useAuthStore";
 import { getSocket } from "@/lib/socket";
+import { AdminHeader } from "@/components/admin/AdminHeader";
 
 function MetricCard({
   icon, label, value, sub, color = "text-white",
@@ -101,46 +102,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-black">
-      {/* Header */}
-      <div className="border-b border-[#2A2A2A] px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center">
-            <Zap className="w-5 h-5 text-black fill-black" />
-          </div>
-          <div>
-            <p className="font-bold text-white">Fixoo Admin</p>
-            <p className="text-[#A1A1AA] text-xs">Kota Operations</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => refetch()}
-            className="w-9 h-9 rounded-xl bg-[#1A1A1A] border border-[#2A2A2A] flex items-center justify-center text-[#A1A1AA] hover:text-white transition-colors"
-          >
-            <RefreshCw className={`w-4 h-4 ${isFetching ? "spin-slow" : ""}`} />
-          </button>
-          <nav className="hidden md:flex items-center gap-1">
-            {[
-              ["Dashboard", "/admin/dashboard"],
-              ["Applications", "/admin/partner-applications"],
-              ["Partners", "/admin/partners"],
-              ["Requests", "/admin/requests"],
-              ["Operations", "/admin/operations"],
-              ["Pricing", "/admin/pricing"],
-              ["Transactions", "/admin/transactions"],
-              ["Analytics", "/admin/analytics"],
-            ].map(([item, href]) => (
-              <a
-                key={item}
-                href={href}
-                className="px-3 py-1.5 rounded-lg text-sm text-[#A1A1AA] hover:text-white hover:bg-[#1A1A1A] transition-colors"
-              >
-                {item}
-              </a>
-            ))}
-          </nav>
-        </div>
-      </div>
+      <AdminHeader onRefresh={() => refetch()} isRefreshing={isFetching} />
 
       <div className="px-6 py-6 max-w-7xl mx-auto">
         {/* Live status bar */}

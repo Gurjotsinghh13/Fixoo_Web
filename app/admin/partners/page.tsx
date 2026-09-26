@@ -2,10 +2,11 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { Search, CheckCircle, XCircle, AlertCircle, Zap } from "lucide-react";
+import { Search, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { toast } from "@/components/shared/Toaster";
 import { format } from "date-fns";
+import { AdminHeader } from "@/components/admin/AdminHeader";
 
 type FilterType = "all" | "pending" | "approved" | "rejected" | "suspended" | "online";
 
@@ -79,7 +80,7 @@ export default function AdminPartnersPage() {
   const [search, setSearch] = useState("");
   const [notes, setNotes] = useState<Record<string, string>>({});
 
-  const { data: partners, isLoading } = useQuery({
+  const { data: partners, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["admin-partners", filter, search],
     queryFn: async () => {
       const res = await axios.get(
@@ -117,14 +118,7 @@ export default function AdminPartnersPage() {
 
   return (
     <div className="min-h-screen bg-black">
-      {/* Header */}
-      <div className="border-b border-[#2A2A2A] px-6 py-4 flex items-center gap-3">
-        <a href="/admin/dashboard" className="text-[#A1A1AA] hover:text-white">
-          <Zap className="w-5 h-5" />
-        </a>
-        <span className="text-[#2A2A2A]">/</span>
-        <h1 className="text-white font-semibold">Partners</h1>
-      </div>
+      <AdminHeader onRefresh={() => refetch()} isRefreshing={isFetching} />
 
       <div className="px-6 py-6 max-w-6xl mx-auto">
         {/* Search + filters */}
@@ -283,7 +277,7 @@ export default function AdminPartnersPage() {
                         </div>
                         <div className="bg-[#111111] rounded-lg px-3 py-2">
                           <p className="text-[#A1A1AA] text-[11px]">Earnings</p>
-                          <p className="text-white text-sm font-semibold">Rs {partner.metrics.earnings}</p>
+                          <p className="text-white text-sm font-semibold">₹{partner.metrics.earnings}</p>
                         </div>
                       </div>
                       <div className="grid md:grid-cols-3 gap-3 mt-4">
